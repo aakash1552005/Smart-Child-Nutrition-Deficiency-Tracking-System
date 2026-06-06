@@ -78,7 +78,7 @@ export default function AuthPage() {
           </div>
         </div>
         <div style={{ color:"#334155", fontSize:11 }}>
-          Project 38 · Karnataka Women & Child Development Department
+          Karnataka WCD Department
         </div>
       </div>
 
