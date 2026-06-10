@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Activity, Users, AlertTriangle, Microscope, Gift, Brain, TrendingUp, Settings, LogOut, Menu, X, Bell } from "lucide-react";
+import { Activity, Users, AlertTriangle, Microscope, Gift, Brain, TrendingUp, Settings, LogOut, X, Menu } from "lucide-react";
 import { createClient } from "@/lib/supabase";
 
 const NAV = [
@@ -17,14 +17,14 @@ const NAV = [
 ];
 
 const S: any = {
-  sidebar: { width:256, background:"rgba(15,23,42,0.95)", borderRight:"1px solid rgba(148,163,184,0.08)", display:"flex", flexDirection:"column", height:"100vh", flexShrink:0 },
+  sidebar: { width:256, background:"rgba(15,23,42,0.98)", borderRight:"1px solid rgba(148,163,184,0.08)", display:"flex", flexDirection:"column", height:"100vh", flexShrink:0 },
   logo: { padding:"24px 20px", borderBottom:"1px solid rgba(148,163,184,0.08)", display:"flex", alignItems:"center", gap:12 },
   logoIcon: { width:36, height:36, borderRadius:10, background:"linear-gradient(135deg,#0d9488,#14b8a6)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 },
   nav: { flex:1, padding:"16px 12px", overflowY:"auto" as const },
   navLabel: { fontSize:11, fontWeight:600, color:"#475569", textTransform:"uppercase" as const, letterSpacing:"0.05em", padding:"0 12px", marginBottom:8 },
   footer: { padding:"12px", borderTop:"1px solid rgba(148,163,184,0.08)" },
   main: { flex:1, display:"flex", flexDirection:"column" as const, overflow:"hidden", minWidth:0 },
-  topbar: { padding:"16px 24px", borderBottom:"1px solid rgba(148,163,184,0.08)", display:"flex", alignItems:"center", justifyContent:"space-between", background:"rgba(15,23,42,0.8)", flexShrink:0 },
+  topbar: { padding:"12px 24px", borderBottom:"1px solid rgba(148,163,184,0.08)", display:"flex", alignItems:"center", justifyContent:"space-between", background:"rgba(15,23,42,0.9)", flexShrink:0, backdropFilter:"blur(8px)" },
   content: { flex:1, overflowY:"auto" as const },
   pageFooter: { padding:"12px 24px", borderTop:"1px solid rgba(148,163,184,0.06)", fontSize:11, color:"#334155", flexShrink:0 },
 };
@@ -105,23 +105,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       <div style={S.main}>
         <header style={S.topbar}>
-          <div style={{ display:"flex", alignItems:"center", gap:16 }}>
-            <button onClick={() => setOpen(true)} style={{ background:"none", border:"none", cursor:"pointer", color:"#94a3b8" }} className="mobile-only"><Menu size={20} /></button>
+          {/* Left: mobile menu (mobile only) + LIVE indicator */}
+          <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+            <button
+              onClick={() => setOpen(true)}
+              style={{ background:"none", border:"none", cursor:"pointer", color:"#94a3b8", display:"none" }}
+              className="mobile-menu-btn">
+              <Menu size={20} />
+            </button>
             <div style={{ display:"flex", alignItems:"center", gap:8 }}>
               <div className="live-dot" style={{ width:8, height:8, borderRadius:"50%", background:"#14b8a6" }} />
               <span style={{ fontSize:12, color:"#14b8a6", fontFamily:"monospace", fontWeight:500 }}>LIVE</span>
             </div>
           </div>
+
+          {/* Right: last updated + user badge only */}
           <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-            <button style={{ background:"rgba(30,41,59,0.5)", border:"1px solid rgba(148,163,184,0.08)", borderRadius:10, padding:8, cursor:"pointer", color:"#94a3b8", position:"relative" }}>
-              <Bell size={16} />
-              <span style={{ position:"absolute", top:6, right:6, width:6, height:6, borderRadius:"50%", background:"#ef4444" }} />
-            </button>
-            <div style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 12px", borderRadius:12, background:"rgba(30,41,59,0.5)", border:"1px solid rgba(148,163,184,0.08)" }}>
+            <div style={{ textAlign:"right" as const }}>
+              <div style={{ fontSize:10, color:"#475569", marginBottom:1 }}>Last updated</div>
+              <div style={{ fontSize:11, color:"#64748b", fontFamily:"monospace" }}>
+                {new Date().toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" })} · {new Date().toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" })}
+              </div>
+            </div>
+            <div style={{ width:1, height:28, background:"rgba(148,163,184,0.1)" }} />
+            <div style={{ display:"flex", alignItems:"center", gap:10, padding:"6px 12px", borderRadius:10, background:"rgba(30,41,59,0.6)", border:"1px solid rgba(148,163,184,0.08)" }}>
               <div style={{ width:28, height:28, borderRadius:8, background:"linear-gradient(135deg,#0d9488,#14b8a6)", display:"flex", alignItems:"center", justifyContent:"center", color:"white", fontWeight:700, fontSize:12 }}>A</div>
               <div>
                 <div style={{ fontSize:12, fontWeight:600, color:"white" }}>Portal User</div>
-                <div style={{ fontSize:11, color:"#64748b" }}>Administrator</div>
+                <div style={{ fontSize:10, color:"#64748b" }}>Administrator</div>
               </div>
             </div>
           </div>
