@@ -121,11 +121,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
           {/* Right: last updated + user badge only */}
           <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-            <div style={{ textAlign:"right" as const }}>
-              <div style={{ fontSize:10, color:"#475569", marginBottom:1 }}>Last updated</div>
-              <div style={{ fontSize:11, color:"#64748b", fontFamily:"monospace" }}>
-                {new Date().toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" })} · {new Date().toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" })}
-              </div>
+            <div style={{ fontSize:11, color:"#64748b", fontFamily:"monospace" }}>
+              {new Date().toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" })} · {new Date().toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" })}
             </div>
             <div style={{ width:1, height:28, background:"rgba(148,163,184,0.1)" }} />
             <div style={{ display:"flex", alignItems:"center", gap:10, padding:"6px 12px", borderRadius:10, background:"rgba(30,41,59,0.6)", border:"1px solid rgba(148,163,184,0.08)" }}>

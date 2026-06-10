@@ -39,12 +39,7 @@ export default function DashboardPage() {
           <h1 style={{ fontSize:24, fontWeight:700, color:"white" }}>Executive Overview</h1>
           <p style={{ fontSize:13, color:"#94a3b8", marginTop:4 }}>Real-time child nutrition analytics across Karnataka</p>
         </div>
-        <div style={{ textAlign:"right" }}>
-          <div style={{ fontSize:11, color:"#64748b" }}>Last updated</div>
-          <div style={{ fontSize:13, fontFamily:"monospace", color:"#cbd5e1", marginTop:2 }}>
-            {now.toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" })} · {now.toLocaleTimeString("en-IN", { hour:"2-digit", minute:"2-digit" })}
-          </div>
-        </div>
+
       </div>
 
       <div style={{ display:"flex", alignItems:"center", gap:12, padding:"14px 20px", borderRadius:12, background:"rgba(239,68,68,0.07)", border:"1px solid rgba(239,68,68,0.2)", marginBottom:24 }}>
