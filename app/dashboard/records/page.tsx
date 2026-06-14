@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
-import { Search, Filter, Download, RefreshCw } from "lucide-react";
+import { Search, Download, RefreshCw } from "lucide-react";
 import { fetchChildRecords } from "@/lib/supabase-data";
 import { DISTRICTS } from "@/lib/mock-data";
 
@@ -20,6 +20,7 @@ export default function RecordsPage() {
   const [search, setSearch]     = useState("");
   const [district, setDistrict] = useState("All");
   const [risk, setRisk]         = useState("All");
+  const [cols, setCols]         = useState<string[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -29,21 +30,51 @@ export default function RecordsPage() {
     });
     setRecords(data);
     setTotal(count);
+    if (data.length > 0) setCols(Object.keys(data[0]));
     setLoading(false);
   }, [district, risk, search, page]);
 
   useEffect(() => { load(); }, [load]);
 
   function exportCSV() {
-    const headers = ["child_id","name","age_months","gender","district","weight_kg","height_cm","bmi","risk_level","scheme_enrolled"];
+    if (!records.length) return;
+    const headers = Object.keys(records[0]);
     const rows = records.map(r => headers.map(h => r[h] ?? "").join(","));
     const blob = new Blob([[headers.join(","), ...rows].join("\n")], { type:"text/csv" });
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
-    a.download = `child_records_${district}_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `child_records_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
   }
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
-  const S = { padding:"8px 12px", background:"rgba(30,41,59,0.8)", border:"1px solid rgba(148,163,184,0.12)", borderRadius:8, color:"#cbd5e1", fontSize:13, outline:"none" };
+  const S = { padding:"8px 12px", background:"rgba(30,41,59,0.8)", border:"1px solid rgba(148,163,184,0.12)", borderRadius:8, color:"#cbd5e1", fontSize:13, outline:"none" } as const;
+
+  // Key columns to always show first
+  const KEY_COLS = ["child_id","age_months","gender","district","weight_kg","height_cm","bmi","waz","haz","whz","risk_level","scheme_enrolled","vitamin_a_deficient","iron_deficient","underweight","wasting","stunting"];
+  const displayCols = cols.length > 0
+    ? [...KEY_COLS.filter(c => cols.includes(c)), ...cols.filter(c => !KEY_COLS.includes(c) && c !== "id")]
+    : KEY_COLS;
+
+  function formatVal(col: string, val: any) {
+    if (val === null || val === undefined) return "—";
+    if (col === "risk_level") {
+      const rc = RISK_COLORS[val] ?? RISK_COLORS.Low;
+      return <span style={{ fontSize:11, padding:"2px 8px", borderRadius:999, fontWeight:500, color:rc.color, background:rc.bg }}>{val}</span>;
+    }
+    if (col === "scheme_enrolled" || col.endsWith("_deficient") || col === "underweight" || col === "wasting" || col === "stunting") {
+      return <span style={{ fontSize:11, color: val===true||val==="true"||val===1 ? "#34d399" : "#f87171" }}>{val===true||val==="true"||val===1 ? "✓ Yes" : "✗ No"}</span>;
+    }
+    if (col === "weight_kg") return `${val}kg`;
+    if (col === "height_cm") return `${val}cm`;
+    if (col === "age_months") return `${val}m`;
+    if (typeof val === "number") return +val.toFixed(2);
+    return String(val);
+  }
+
+  function colLabel(col: string) {
+    return col.replace(/_/g," ").replace(/\b\w/g, l => l.toUpperCase()).replace("Kg","(kg)").replace("Cm","(cm)");
+  }
 
   return (
     <div style={{ padding:24 }}>
@@ -66,7 +97,7 @@ export default function RecordsPage() {
       <div className="glass" style={{ borderRadius:12, padding:16, marginBottom:16, display:"flex", gap:12, flexWrap:"wrap" as const, alignItems:"center" }}>
         <div style={{ position:"relative" as const, flex:1, minWidth:200 }}>
           <Search size={14} style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", color:"#64748b" }} />
-          <input placeholder="Search by name or ID..." value={search}
+          <input placeholder="Search by child ID..." value={search}
             onChange={e => { setSearch(e.target.value); setPage(0); }}
             style={{ ...S, width:"100%", paddingLeft:32 }} />
         </div>
@@ -84,40 +115,30 @@ export default function RecordsPage() {
       {/* Table */}
       <div className="glass" style={{ borderRadius:12, overflow:"hidden", marginBottom:16 }}>
         <div style={{ overflowX:"auto" as const }}>
-          <table style={{ width:"100%", borderCollapse:"collapse" as const, fontSize:13 }}>
+          <table style={{ width:"100%", borderCollapse:"collapse" as const, fontSize:12 }}>
             <thead>
               <tr style={{ borderBottom:"1px solid rgba(148,163,184,0.08)" }}>
-                {["Child ID","Name","Age","Gender","District","Weight","Height","BMI","Risk Level","Scheme"].map(h => (
-                  <th key={h} style={{ padding:"10px 14px", textAlign:"left" as const, fontSize:11, fontWeight:600, color:"#475569", textTransform:"uppercase" as const, letterSpacing:"0.04em", whiteSpace:"nowrap" as const }}>{h}</th>
+                {displayCols.map(col => (
+                  <th key={col} style={{ padding:"10px 12px", textAlign:"left" as const, fontSize:10, fontWeight:600, color:"#475569", textTransform:"uppercase" as const, letterSpacing:"0.04em", whiteSpace:"nowrap" as const }}>
+                    {colLabel(col)}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={10} style={{ padding:40, textAlign:"center" as const, color:"#475569" }}>Loading from Supabase...</td></tr>
+                <tr><td colSpan={displayCols.length} style={{ padding:40, textAlign:"center" as const, color:"#475569" }}>Loading from Supabase...</td></tr>
               ) : records.length === 0 ? (
-                <tr><td colSpan={10} style={{ padding:40, textAlign:"center" as const, color:"#475569" }}>No records found</td></tr>
-              ) : records.map((r, i) => {
-                const rc = RISK_COLORS[r.risk_level] ?? RISK_COLORS.Low;
-                return (
-                  <tr key={r.child_id ?? i} className="table-row-hover" style={{ borderBottom:"1px solid rgba(148,163,184,0.04)" }}>
-                    <td style={{ padding:"10px 14px", fontFamily:"monospace", fontSize:12, color:"#64748b" }}>{r.child_id}</td>
-                    <td style={{ padding:"10px 14px", color:"white", fontWeight:500 }}>{r.name ?? "—"}</td>
-                    <td style={{ padding:"10px 14px", color:"#94a3b8" }}>{r.age_months}m</td>
-                    <td style={{ padding:"10px 14px", color:"#94a3b8" }}>{r.gender}</td>
-                    <td style={{ padding:"10px 14px", color:"#94a3b8" }}>{r.district}</td>
-                    <td style={{ padding:"10px 14px", color:"#94a3b8" }}>{r.weight_kg}kg</td>
-                    <td style={{ padding:"10px 14px", color:"#94a3b8" }}>{r.height_cm}cm</td>
-                    <td style={{ padding:"10px 14px", color:"#94a3b8" }}>{r.bmi}</td>
-                    <td style={{ padding:"10px 14px" }}>
-                      <span style={{ fontSize:11, padding:"2px 8px", borderRadius:999, fontWeight:500, color:rc.color, background:rc.bg }}>{r.risk_level}</span>
+                <tr><td colSpan={displayCols.length} style={{ padding:40, textAlign:"center" as const, color:"#475569" }}>No records found</td></tr>
+              ) : records.map((r, i) => (
+                <tr key={r.child_id ?? i} className="table-row-hover" style={{ borderBottom:"1px solid rgba(148,163,184,0.04)" }}>
+                  {displayCols.map(col => (
+                    <td key={col} style={{ padding:"9px 12px", color: col==="child_id" ? "#64748b" : "#94a3b8", fontFamily: col==="child_id" ? "monospace" : "inherit", whiteSpace:"nowrap" as const }}>
+                      {formatVal(col, r[col])}
                     </td>
-                    <td style={{ padding:"10px 14px" }}>
-                      <span style={{ fontSize:11, color: r.scheme_enrolled ? "#34d399" : "#f87171" }}>{r.scheme_enrolled ? "✓ Yes" : "✗ No"}</span>
-                    </td>
-                  </tr>
-                );
-              })}
+                  ))}
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -130,11 +151,11 @@ export default function RecordsPage() {
         </span>
         <div style={{ display:"flex", gap:8 }}>
           <button onClick={() => setPage(p => Math.max(0,p-1))} disabled={page===0}
-            style={{ padding:"6px 14px", borderRadius:8, fontSize:12, cursor: page===0?"not-allowed":"pointer", background:"rgba(30,41,59,0.6)", border:"1px solid rgba(148,163,184,0.12)", color: page===0?"#334155":"#94a3b8", opacity:page===0?0.5:1 }}>
+            style={{ padding:"6px 14px", borderRadius:8, fontSize:12, cursor:page===0?"not-allowed":"pointer", background:"rgba(30,41,59,0.6)", border:"1px solid rgba(148,163,184,0.12)", color:page===0?"#334155":"#94a3b8", opacity:page===0?0.5:1 }}>
             Previous
           </button>
           <button onClick={() => setPage(p => Math.min(totalPages-1,p+1))} disabled={page>=totalPages-1}
-            style={{ padding:"6px 14px", borderRadius:8, fontSize:12, cursor: page>=totalPages-1?"not-allowed":"pointer", background:"rgba(30,41,59,0.6)", border:"1px solid rgba(148,163,184,0.12)", color: page>=totalPages-1?"#334155":"#94a3b8", opacity:page>=totalPages-1?0.5:1 }}>
+            style={{ padding:"6px 14px", borderRadius:8, fontSize:12, cursor:page>=totalPages-1?"not-allowed":"pointer", background:"rgba(30,41,59,0.6)", border:"1px solid rgba(148,163,184,0.12)", color:page>=totalPages-1?"#334155":"#94a3b8", opacity:page>=totalPages-1?0.5:1 }}>
             Next
           </button>
         </div>
