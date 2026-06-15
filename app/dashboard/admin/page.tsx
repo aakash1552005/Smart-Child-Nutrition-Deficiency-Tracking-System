@@ -20,7 +20,7 @@ const TABS = [
 const AUDIT_SEED = [
   { id:1, user:"admin@karnataka.gov.in", action:"Exported dataset (CSV)",       module:"Export",   ts:"2026-06-10 22:14:03", ip:"192.168.1.12" },
   { id:2, user:"officer1@wcd.kar.in",    action:"Added child record KA10051",   module:"Add Child",ts:"2026-06-10 21:58:44", ip:"10.0.0.5"    },
-  { id:3, user:"admin@karnataka.gov.in", action:"Synced 234 new records",       module:"Sync",     ts:"2026-06-10 21:30:11", ip:"192.168.1.12" },
+  { id:3, user:"admin@karnataka.gov.in", action:"Synced 5,000 records from child_records table",       module:"Sync",     ts:"2026-06-10 21:30:11", ip:"192.168.1.12" },
   { id:4, user:"officer2@wcd.kar.in",    action:"Logged in",                    module:"Auth",     ts:"2026-06-10 20:45:22", ip:"10.0.0.9"    },
   { id:5, user:"admin@karnataka.gov.in", action:"Updated risk threshold to 0.7",module:"Settings", ts:"2026-06-10 19:12:55", ip:"192.168.1.12" },
   { id:6, user:"officer1@wcd.kar.in",    action:"Viewed child record KA00123",  module:"Records",  ts:"2026-06-10 18:30:40", ip:"10.0.0.5"    },
@@ -30,11 +30,7 @@ const AUDIT_SEED = [
 
 // ── Mock users ──
 const USERS_SEED = [
-  { id:1, email:"admin@karnataka.gov.in",  name:"Admin User",     role:"Administrator", active:true,  last_login:"2026-06-10 22:14" },
-  { id:2, email:"officer1@wcd.kar.in",     name:"Priya Sharma",   role:"Field Officer", active:true,  last_login:"2026-06-10 21:58" },
-  { id:3, email:"officer2@wcd.kar.in",     name:"Ravi Kumar",     role:"Field Officer", active:true,  last_login:"2026-06-10 20:45" },
-  { id:4, email:"officer3@wcd.kar.in",     name:"Meena Patil",    role:"Viewer",        active:true,  last_login:"2026-06-09 17:10" },
-  { id:5, email:"analyst@wcd.kar.in",      name:"Suresh Reddy",   role:"Analyst",       active:false, last_login:"2026-06-01 09:30" },
+  { id:1, email:"aakash1552005@gmail.com", name:"Aakash S S", role:"Administrator", active:true, last_login:new Date().toLocaleString("en-IN") },
 ];
 
 function Badge({ color, bg, children }: { color:string; bg:string; children:React.ReactNode }) {
@@ -60,7 +56,7 @@ function OverviewTab() {
           { label:"Database",    status:"Connected",  ok:true,  detail:"Supabase PostgreSQL · 5,000 records" },
           { label:"ML Models",   status:"6 Active",   ok:true,  detail:"RF · XGB · LightGBM · Prophet" },
           { label:"API Backend", status:"Online",     ok:true,  detail:"FastAPI on Render · 94ms avg latency" },
-          { label:"Last Sync",   status:"10 Jun 22:14", ok:true, detail:"234 new records added" },
+          { label:"Last Sync",   status:"14 Jun 22:14", ok:true, detail:"5,000 records in database" },
           { label:"Vercel",      status:"Deployed",   ok:true,  detail:"Production · master branch" },
           { label:"GitHub CI",   status:"Passing",    ok:true,  detail:"Last build: 28s" },
         ].map(({ label, status, ok, detail }) => (
@@ -107,7 +103,7 @@ function SyncTab() {
     const steps = [
       "Connecting to Supabase...",
       "Checking last sync timestamp...",
-      "Fetching new records from children table...",
+      "Fetching new records from child_records table...",
       "Validating data integrity...",
       "Updating local cache...",
       "Sync complete ✓",
@@ -116,7 +112,10 @@ function SyncTab() {
       await new Promise((r) => setTimeout(r, 600));
       setLog((prev) => [...prev, steps[i]]);
     }
-    setResult({ new_records: 234, updated: 12, timestamp: new Date().toLocaleString("en-IN") });
+    // Get real count from Supabase
+      const supabase = createClient();
+      const { count } = await supabase.from("child_records").select("*", { count:"exact", head:true });
+      setResult({ new_records: count ?? 0, updated: 0, timestamp: new Date().toLocaleString("en-IN") });
     setStatus("done");
   }
 
@@ -457,7 +456,7 @@ function AddChildTab() {
       created_at: new Date().toISOString(),
     };
     try {
-      const { error } = await supabase.from("children").insert([payload]);
+      const { error } = await supabase.from("child_records").insert([payload]);
       if (error) throw error;
       setStatus("done");
       setForm({ name:"", age_months:"", gender:"Male", district:"Kalaburagi", weight_kg:"", height_cm:"", vitamin_a:"No", iron:"No", underweight:"No", wasting:"No", stunting:"No", scheme_enrolled:"No" });
