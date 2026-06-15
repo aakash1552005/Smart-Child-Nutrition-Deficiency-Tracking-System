@@ -63,10 +63,20 @@ export default function DashboardPage() {
       const isMedium = (v:string) => v?.toLowerCase().includes("medium") || v?.toLowerCase().includes("mod");
       const isLow    = (v:string) => v?.toLowerCase().includes("low");
 
-      // Fetch all records for stats
-      const { data: allRisk } = await supabase.from("child_records").select("risk_label,district,iron_deficiency,vitamin_a_deficiency,protein_deficiency,zinc_deficiency,stunting,wasting,underweight,vaccination_status,breastfeeding,poshan_abhiyaan");
-
-      const all = allRisk ?? [];
+      // Fetch ALL records in batches (Supabase limit is 1000 per call)
+      let all: any[] = [];
+      let from = 0;
+      const batchSize = 1000;
+      while (true) {
+        const { data: batch } = await supabase
+          .from("child_records")
+          .select("risk_label,district,iron_deficiency,vitamin_a_deficiency,protein_deficiency,zinc_deficiency,stunting,wasting,underweight,vaccination_status,breastfeeding,poshan_abhiyaan")
+          .range(from, from + batchSize - 1);
+        if (!batch || batch.length === 0) break;
+        all = [...all, ...batch];
+        if (batch.length < batchSize) break;
+        from += batchSize;
+      }
       const total = all.length;
       const high   = all.filter((r:any) => isHigh(r.risk_label)).length;
       const medium = all.filter((r:any) => isMedium(r.risk_label)).length;
