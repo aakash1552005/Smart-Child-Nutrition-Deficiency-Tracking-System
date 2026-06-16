@@ -81,8 +81,8 @@ export default function DashboardPage() {
       const high   = all.filter((r:any) => isHigh(r.risk_label)).length;
       const medium = all.filter((r:any) => isMedium(r.risk_label)).length;
       const low    = all.filter((r:any) => isLow(r.risk_label)).length;
-      const vaccinated = all.filter((r:any) => r.vaccination_status===true||r.vaccination_status==="Yes"||r.vaccination_status===1).length;
-      const breastfed  = all.filter((r:any) => r.breastfeeding===true||r.breastfeeding==="Yes"||r.breastfeeding===1).length;
+      const vaccinated = all.filter((r:any) => r.vaccination_status==="Complete").length;
+      const breastfed  = all.filter((r:any) => r.breastfeeding==="Yes").length;
 
       setStats({ total, high, medium, low, vaccinated, breastfed });
 
