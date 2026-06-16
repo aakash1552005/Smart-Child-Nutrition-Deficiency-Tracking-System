@@ -144,7 +144,7 @@ export default function DashboardPage() {
           <AlertTriangle size={16} color="#ef4444" style={{ flexShrink:0 }} />
           <p style={{ fontSize:13, color:"#cbd5e1" }}>
             <strong style={{ color:"#f87171" }}>{stats.high} children</strong> classified as High Risk require immediate intervention.
-            {stats.vaccinated < stats.total && <> · <strong style={{ color:"#fbbf24" }}>{(stats.total-stats.vaccinated).toLocaleString()} children</strong> unvaccinated.</>}
+            {stats.vaccinated < stats.total && <> · <strong style={{ color:"#fbbf24" }}>{(stats.total-stats.vaccinated).toLocaleString()} children</strong> not fully vaccinated.</>}
           </p>
         </div>
       )}
@@ -166,7 +166,7 @@ export default function DashboardPage() {
           <div>
             <div style={{ fontSize:20, fontWeight:700, color:"#60a5fa" }}>{loading ? "..." : `${vacPct}%`}</div>
             <div style={{ fontSize:12, color:"#94a3b8" }}>Vaccination Coverage</div>
-            <div style={{ fontSize:11, color:"#475569", marginTop:2 }}>{loading ? "" : `${stats.vaccinated.toLocaleString()} of ${stats.total.toLocaleString()} vaccinated`}</div>
+            <div style={{ fontSize:11, color:"#475569", marginTop:2 }}>{loading ? "" : `${stats.vaccinated.toLocaleString()} fully vaccinated · ${stats.total-stats.vaccinated} partial/none`}</div>
           </div>
         </div>
         <div className="glass" style={{ borderRadius:14, padding:18, display:"flex", alignItems:"center", gap:14 }}>
