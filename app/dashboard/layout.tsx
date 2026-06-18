@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Activity, Users, AlertTriangle, Microscope, Gift, Brain, TrendingUp, Settings, LogOut, X, Menu } from "lucide-react";
@@ -33,7 +33,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [stats, setStats] = useState({ total: 5000, high: 66 });
   const supabase = createClient();
+
+  useEffect(() => {
+    async function loadStats() {
+      const [totalRes, highRes] = await Promise.all([
+        supabase.from("child_records").select("*", { count:"exact", head:true }),
+        supabase.from("child_records").select("*", { count:"exact", head:true }).ilike("risk_label", "%high%"),
+      ]);
+      setStats({
+        total: totalRes.count ?? 5000,
+        high:  highRes.count ?? 66,
+      });
+    }
+    loadStats();
+  }, []);
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -68,11 +83,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div style={{ fontSize:11, color:"#64748b", marginBottom:8, fontWeight:500 }}>Quick Stats</div>
           <div style={{ display:"flex", justifyContent:"space-between", fontSize:12 }}>
             <span style={{ color:"#94a3b8" }}>Total Records</span>
-            <span style={{ color:"#14b8a6", fontFamily:"monospace", fontWeight:700 }}>5,000</span>
+            <span style={{ color:"#14b8a6", fontFamily:"monospace", fontWeight:700 }}>{stats.total.toLocaleString()}</span>
           </div>
           <div style={{ display:"flex", justifyContent:"space-between", fontSize:12, marginTop:4 }}>
             <span style={{ color:"#94a3b8" }}>High Risk</span>
-            <span style={{ color:"#ef4444", fontFamily:"monospace", fontWeight:700 }}>66</span>
+            <span style={{ color:"#ef4444", fontFamily:"monospace", fontWeight:700 }}>{stats.high}</span>
           </div>
         </div>
         <div style={S.footer}>
