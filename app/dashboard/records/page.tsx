@@ -47,7 +47,7 @@ export default function RecordsPage() {
     const supabase = createClient();
     let query = supabase.from("child_records").select("*", { count:"exact" });
     if (district !== "All") query = query.eq("district", district);
-    if (risk !== "All") query = query.eq("risk_label", risk);
+    if (risk !== "All") query = query.ilike("risk_label", `%${risk}%`);
     if (search) query = query.ilike("child_id", `%${search}%`);
     query = query.order("child_id").range(page*PAGE_SIZE, (page+1)*PAGE_SIZE-1);
     const { data, count } = await query;
