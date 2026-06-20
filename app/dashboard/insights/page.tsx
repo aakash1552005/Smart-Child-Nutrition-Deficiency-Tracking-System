@@ -96,17 +96,25 @@ export default function InsightsPage() {
         <div className="glass" style={{ borderRadius:16, padding:24, marginBottom:20 }}>
           <h3 style={{ fontSize:14, fontWeight:600, color:"white", marginBottom:4 }}>Top Predictive Features (SHAP Analysis)</h3>
           <p style={{ fontSize:12, color:"#64748b", marginBottom:16 }}>Features with highest impact on risk prediction</p>
-          <div style={{ display:"flex", flexDirection:"column" as const, gap:10 }}>
-            {shap.map((f: any, i: number) => (
-              <div key={f.feature} style={{ display:"flex", alignItems:"center", gap:12 }}>
-                <span style={{ fontSize:13, fontWeight:700, color:"#475569", minWidth:20 }}>#{i+1}</span>
-                <span style={{ fontSize:12, color:"#94a3b8", minWidth:180, textTransform:"capitalize" as const }}>{f.feature.replace(/_/g," ")}</span>
-                <div style={{ flex:1, height:8, borderRadius:4, background:"rgba(71,85,105,0.3)" }}>
-                  <div style={{ height:8, borderRadius:4, background:"linear-gradient(90deg,#0d9488,#14b8a6)", width:`${f.importance*300}%` }} />
+          <div style={{ display:"flex", flexDirection:"column" as const, gap:12 }}>
+            {shap.map((f: any, i: number) => {
+              const maxImp = Math.max(...shap.map((x:any) => x.importance));
+              const pct = Math.min((f.importance / maxImp) * 100, 100);
+              return (
+                <div key={f.feature}>
+                  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:6 }}>
+                    <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                      <span style={{ fontSize:11, fontWeight:700, color:"#475569", minWidth:22 }}>#{i+1}</span>
+                      <span style={{ fontSize:12, color:"#94a3b8", textTransform:"capitalize" as const }}>{f.feature.replace(/_/g," ")}</span>
+                    </div>
+                    <span style={{ fontSize:12, fontFamily:"monospace", color:"#14b8a6", fontWeight:600 }}>{f.importance}</span>
+                  </div>
+                  <div style={{ width:"100%", height:8, borderRadius:4, background:"rgba(71,85,105,0.3)", overflow:"hidden" }}>
+                    <div style={{ height:8, borderRadius:4, background:"linear-gradient(90deg,#0d9488,#14b8a6)", width:`${pct}%`, transition:"width 0.6s ease" }} />
+                  </div>
                 </div>
-                <span style={{ fontSize:12, fontFamily:"monospace", color:"#14b8a6", minWidth:40 }}>{f.importance}</span>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
