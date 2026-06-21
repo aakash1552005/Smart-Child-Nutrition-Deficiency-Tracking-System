@@ -16,7 +16,6 @@ const TABS = [
   { id:"system",     icon:Settings,  label:"System Settings", color:"#94a3b8" },
 ] as const;
 
-// ── Mock audit log entries ──
 const AUDIT_SEED = [
   { id:1, user:"aakash1552005@gmail.com", action:"Exported dataset (CSV)",       module:"Export",   ts:"2026-06-10 22:14:03", ip:"192.168.1.12" },
   { id:2, user:"officer1@wcd.kar.in",    action:"Added child record KA10051",   module:"Add Child",ts:"2026-06-10 21:58:44", ip:"10.0.0.5"    },
@@ -28,7 +27,6 @@ const AUDIT_SEED = [
   { id:8, user:"officer3@wcd.kar.in",    action:"First login",                  module:"Auth",     ts:"2026-06-09 17:10:02", ip:"10.0.1.3"    },
 ];
 
-// ── Mock users ──
 const USERS_SEED = [
   { id:1, email:"aakash1552005@gmail.com", name:"Aakash S S", role:"Administrator", active:true, last_login:new Date().toLocaleString("en-IN") },
 ];
@@ -46,7 +44,6 @@ function SectionHeader({ title, sub }: { title:string; sub:string }) {
   );
 }
 
-// ── TABS ──────────────────────────────────────────────
 function OverviewTab() {
   return (
     <div>
@@ -112,7 +109,6 @@ function SyncTab() {
       await new Promise((r) => setTimeout(r, 600));
       setLog((prev) => [...prev, steps[i]]);
     }
-    // Get real count from Supabase
       const supabase = createClient();
       const { count } = await supabase.from("child_records").select("*", { count:"exact", head:true });
       setResult({ new_records: count ?? 0, updated: 0, timestamp: new Date().toLocaleString("en-IN") });
@@ -135,7 +131,6 @@ function SyncTab() {
             {status==="syncing" ? "Syncing..." : "Run Sync Now"}
           </button>
         </div>
-        {/* Log terminal */}
         {log.length > 0 && (
           <div style={{ background:"rgba(0,0,0,0.4)", borderRadius:8, padding:14, fontFamily:"monospace", fontSize:12 }}>
             {log.map((l,i) => (
@@ -171,7 +166,6 @@ function ExportTab() {
 
   async function doExport() {
     setExporting(true);
-    // Build mock CSV data
     await new Promise((r) => setTimeout(r, 1200));
     const headers = ["child_id","name","age_months","gender","district","weight_kg","height_cm","bmi","risk_level","scheme_enrolled","vitamin_a_deficient","iron_deficient","underweight","wasting","stunting"];
     const firstNames = ["Aarav","Priya","Kiran","Deepa","Rahul","Ananya","Vikram","Suma","Arjun","Nandini"];
@@ -447,21 +441,46 @@ function AddChildTab() {
     const wt = parseFloat(form.weight_kg);
     const ht = parseFloat(form.height_cm);
     const bmi = +(wt / (ht/100)**2).toFixed(1);
-    const risk = form.wasting==="Yes" || form.stunting==="Yes" ? "High"
-      : form.underweight==="Yes" || form.vitamin_a==="Yes" || form.iron==="Yes" ? "Medium" : "Low";
+    const risk = form.wasting==="Yes" || form.stunting==="Yes" ? "High Risk"
+      : form.underweight==="Yes" || form.vitamin_a==="Yes" || form.iron==="Yes" ? "Medium Risk" : "Low Risk";
+
+    // ✅ FIX: child_records' real schema (confirmed against the source CSV
+    // that seeded this table) has 25 columns total, ALL effectively NOT
+    // NULL (zero blanks across all 5,000 existing rows). The old payload
+    // sent a "created_at" column that doesn't exist at all, was missing
+    // 10 required columns entirely, and sent poshan_abhiyaan as a string
+    // ("Yes"/"No") when the real column is an INTEGER (0/1). Any one of
+    // these causes Supabase to reject the insert — "created_at" was just
+    // the first one it happened to complain about.
     const payload = {
       child_id: "KA" + String(Date.now()).slice(-5),
-      age_months: age, gender: form.gender,
-      district: form.district, weight_kg: wt, height_cm: ht, bmi,
-      risk_label: risk,
-      poshan_abhiyaan: form.scheme_enrolled==="Yes" ? "Yes" : "No",
-      vitamin_a_deficiency: form.vitamin_a==="Yes" ? 1 : 0,
-      iron_deficiency: form.iron==="Yes" ? 1 : 0,
-      underweight: form.underweight==="Yes" ? 1 : 0,
-      wasting: form.wasting==="Yes" ? 1 : 0,
-      stunting: form.stunting==="Yes" ? 1 : 0,
-      vaccination_status: "None",
-      breastfeeding: "No",
+      age_months: age,
+      gender: form.gender,
+      district: form.district,
+      weight_kg: wt,
+      height_cm: ht,
+      bmi,
+      // haz/waz/whz (growth z-scores) aren't collected by this simplified
+      // form — 0 is a neutral placeholder until the form captures them.
+      haz: 0,
+      waz: 0,
+      whz: 0,
+      family_income: "Below Poverty",
+      mother_education: "Primary",
+      household_size: 5,
+      vaccination_status: "Partial",
+      breastfeeding: "Yes",
+      mid_day_meal: 0,
+      icds_enrolled: 0,
+      poshan_abhiyaan: form.scheme_enrolled === "Yes" ? 1 : 0,   // ✅ integer, not "Yes"/"No"
+      iron_deficiency: form.iron === "Yes" ? 1 : 0,
+      vitamin_a_deficiency: form.vitamin_a === "Yes" ? 1 : 0,
+      protein_deficiency: 0,
+      zinc_deficiency: 0,
+      stunting: form.stunting === "Yes" ? 1 : 0,
+      wasting: form.wasting === "Yes" ? 1 : 0,
+      underweight: form.underweight === "Yes" ? 1 : 0,
+      risk_label: risk,   // ✅ "risk_label", not "risk_level"; values "High Risk"/"Medium Risk"/"Low Risk"
     };
     try {
       const { error } = await supabase.from("child_records").insert([payload]);
@@ -553,7 +572,6 @@ function SystemTab() {
     <div>
       <SectionHeader title="System Settings" sub="Configure risk thresholds and alert notifications" />
 
-      {/* Explanation box */}
       <div className="glass" style={{ borderRadius:12, padding:16, marginBottom:16, border:"1px solid rgba(96,165,250,0.2)", background:"rgba(96,165,250,0.04)" }}>
         <div style={{ fontSize:13, fontWeight:600, color:"#60a5fa", marginBottom:8 }}>How Alert System Works</div>
         <div style={{ fontSize:12, color:"#94a3b8", lineHeight:1.7 }}>
@@ -627,7 +645,6 @@ function SystemTab() {
   );
 }
 
-// ── MAIN PAGE ─────────────────────────────────────────
 export default function AdminPage() {
   const [tab, setTab] = useState<Tab>("overview");
 
@@ -640,8 +657,6 @@ export default function AdminPage() {
     add_child: <AddChildTab />,
     system:    <SystemTab />,
   };
-  // Keep all tabs mounted to prevent state reset
-  
 
   return (
     <div style={{ padding:24 }}>
