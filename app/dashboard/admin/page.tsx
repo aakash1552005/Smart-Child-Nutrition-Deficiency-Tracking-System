@@ -18,13 +18,13 @@ const TABS = [
 
 // ── Mock audit log entries ──
 const AUDIT_SEED = [
-  { id:1, user:"admin@karnataka.gov.in", action:"Exported dataset (CSV)",       module:"Export",   ts:"2026-06-10 22:14:03", ip:"192.168.1.12" },
+  { id:1, user:"aakash1552005@gmail.com", action:"Exported dataset (CSV)",       module:"Export",   ts:"2026-06-10 22:14:03", ip:"192.168.1.12" },
   { id:2, user:"officer1@wcd.kar.in",    action:"Added child record KA10051",   module:"Add Child",ts:"2026-06-10 21:58:44", ip:"10.0.0.5"    },
-  { id:3, user:"admin@karnataka.gov.in", action:"Synced 5,000 records from child_records table",       module:"Sync",     ts:"2026-06-10 21:30:11", ip:"192.168.1.12" },
+  { id:3, user:"aakash1552005@gmail.com", action:"Synced 5,000 records from child_records table",       module:"Sync",     ts:"2026-06-10 21:30:11", ip:"192.168.1.12" },
   { id:4, user:"officer2@wcd.kar.in",    action:"Logged in",                    module:"Auth",     ts:"2026-06-10 20:45:22", ip:"10.0.0.9"    },
-  { id:5, user:"admin@karnataka.gov.in", action:"Updated risk threshold to 0.7",module:"Settings", ts:"2026-06-10 19:12:55", ip:"192.168.1.12" },
+  { id:5, user:"aakash1552005@gmail.com", action:"Updated risk threshold to 0.7",module:"Settings", ts:"2026-06-10 19:12:55", ip:"192.168.1.12" },
   { id:6, user:"officer1@wcd.kar.in",    action:"Viewed child record KA00123",  module:"Records",  ts:"2026-06-10 18:30:40", ip:"10.0.0.5"    },
-  { id:7, user:"admin@karnataka.gov.in", action:"Added user officer3@wcd.kar.in",module:"Users",   ts:"2026-06-09 17:05:18", ip:"192.168.1.12" },
+  { id:7, user:"aakash1552005@gmail.com", action:"Added user officer3@wcd.kar.in",module:"Users",   ts:"2026-06-09 17:05:18", ip:"192.168.1.12" },
   { id:8, user:"officer3@wcd.kar.in",    action:"First login",                  module:"Auth",     ts:"2026-06-09 17:10:02", ip:"10.0.1.3"    },
 ];
 
@@ -306,17 +306,18 @@ function UsersTab() {
         {showAdd && (
           <div style={{ padding:20, borderBottom:"1px solid rgba(148,163,184,0.06)", background:"rgba(15,23,42,0.5)" }}>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr auto", gap:10, alignItems:"end" }}>
-              {[
-                { label:"Full Name", key:"name", ph:"e.g. Kavya Reddy" },
-                { label:"Email", key:"email", ph:"officer@wcd.kar.in" },
-              ].map(({ label, key, ph }) => (
-                <div key={key}>
-                  <label style={{ fontSize:11, color:"#64748b", display:"block", marginBottom:4 }}>{label}</label>
-                  <input value={(newUser as any)[key]} onChange={(e) => setNewUser((p) => ({ ...p, [key]: e.target.value }))}
-                    placeholder={ph}
-                    style={{ width:"100%", padding:"8px 12px", background:"rgba(30,41,59,0.8)", border:"1px solid rgba(148,163,184,0.12)", borderRadius:8, color:"white", fontSize:13, outline:"none" }} />
-                </div>
-              ))}
+              <div>
+                <label style={{ fontSize:11, color:"#64748b", display:"block", marginBottom:4 }}>Full Name</label>
+                <input value={newUser.name} onChange={(e) => setNewUser((p) => ({ ...p, name: e.target.value }))}
+                  placeholder="e.g. Kavya Reddy"
+                  style={{ width:"100%", padding:"8px 12px", background:"rgba(30,41,59,0.8)", border:"1px solid rgba(148,163,184,0.12)", borderRadius:8, color:"white", fontSize:13, outline:"none" }} />
+              </div>
+              <div>
+                <label style={{ fontSize:11, color:"#64748b", display:"block", marginBottom:4 }}>Email</label>
+                <input value={newUser.email} onChange={(e) => setNewUser((p) => ({ ...p, email: e.target.value }))}
+                  placeholder="officer@wcd.kar.in"
+                  style={{ width:"100%", padding:"8px 12px", background:"rgba(30,41,59,0.8)", border:"1px solid rgba(148,163,184,0.12)", borderRadius:8, color:"white", fontSize:13, outline:"none" }} />
+              </div>
               <div>
                 <label style={{ fontSize:11, color:"#64748b", display:"block", marginBottom:4 }}>Role</label>
                 <select value={newUser.role} onChange={(e) => setNewUser((p) => ({ ...p, role: e.target.value }))}
@@ -433,7 +434,9 @@ function AddChildTab() {
   const [status, setStatus] = useState<"idle"|"saving"|"done"|"error">("idle");
   const [errMsg, setErrMsg] = useState("");
 
-  function set(k:string, v:string) { setForm((p) => ({ ...p, [k]:v })); }
+  const set = (k:string) => (e: React.ChangeEvent<HTMLInputElement|HTMLSelectElement>) => {
+    setForm((p) => ({ ...p, [k]: e.target.value }));
+  };
 
   async function save() {
     if (!form.name || !form.age_months || !form.weight_kg || !form.height_cm) {
@@ -448,12 +451,17 @@ function AddChildTab() {
       : form.underweight==="Yes" || form.vitamin_a==="Yes" || form.iron==="Yes" ? "Medium" : "Low";
     const payload = {
       child_id: "KA" + String(Date.now()).slice(-5),
-      name: form.name, age_months: age, gender: form.gender,
+      age_months: age, gender: form.gender,
       district: form.district, weight_kg: wt, height_cm: ht, bmi,
-      risk_level: risk, scheme_enrolled: form.scheme_enrolled==="Yes",
-      vitamin_a_deficient: form.vitamin_a==="Yes", iron_deficient: form.iron==="Yes",
-      underweight: form.underweight==="Yes", wasting: form.wasting==="Yes", stunting: form.stunting==="Yes",
-      created_at: new Date().toISOString(),
+      risk_label: risk,
+      poshan_abhiyaan: form.scheme_enrolled==="Yes" ? "Yes" : "No",
+      vitamin_a_deficiency: form.vitamin_a==="Yes" ? 1 : 0,
+      iron_deficiency: form.iron==="Yes" ? 1 : 0,
+      underweight: form.underweight==="Yes" ? 1 : 0,
+      wasting: form.wasting==="Yes" ? 1 : 0,
+      stunting: form.stunting==="Yes" ? 1 : 0,
+      vaccination_status: "None",
+      breastfeeding: "No",
     };
     try {
       const { error } = await supabase.from("child_records").insert([payload]);
@@ -466,23 +474,7 @@ function AddChildTab() {
     }
   }
 
-  const Input = ({ label, k, ph, type="text" }: { label:string; k:string; ph:string; type?:string }) => (
-    <div>
-      <label style={{ fontSize:11, color:"#64748b", fontWeight:500, display:"block", marginBottom:5 }}>{label} <span style={{ color:"#ef4444" }}>*</span></label>
-      <input type={type} value={(form as any)[k]} onChange={(e) => set(k, e.target.value)} placeholder={ph}
-        style={{ width:"100%", padding:"9px 12px", background:"rgba(30,41,59,0.8)", border:"1px solid rgba(148,163,184,0.12)", borderRadius:8, color:"white", fontSize:13, outline:"none" }} />
-    </div>
-  );
 
-  const Select = ({ label, k, options }: { label:string; k:string; options:string[] }) => (
-    <div>
-      <label style={{ fontSize:11, color:"#64748b", fontWeight:500, display:"block", marginBottom:5 }}>{label}</label>
-      <select value={(form as any)[k]} onChange={(e) => set(k, e.target.value)}
-        style={{ width:"100%", padding:"9px 12px", background:"rgba(30,41,59,0.8)", border:"1px solid rgba(148,163,184,0.12)", borderRadius:8, color:"#cbd5e1", fontSize:13, outline:"none" }}>
-        {options.map((o) => <option key={o}>{o}</option>)}
-      </select>
-    </div>
-  );
 
   return (
     <div>
@@ -502,24 +494,30 @@ function AddChildTab() {
           <AlertTriangle size={13} /> Basic details — risk level auto-calculated from deficiency flags
         </div>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14, marginBottom:14 }}>
-          <Input label="Child Name" k="name" ph="e.g. Aarav K." />
-          <Input label="Age (months)" k="age_months" ph="e.g. 18" type="number" />
-          <Select label="Gender" k="gender" options={["Male","Female"]} />
-          <Select label="District" k="district" options={DISTRICTS} />
-          <Input label="Weight (kg)" k="weight_kg" ph="e.g. 8.5" type="number" />
-          <Input label="Height (cm)" k="height_cm" ph="e.g. 74.0" type="number" />
+          <div><label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>Child Name <span style={{color:"#ef4444"}}>*</span></label><input value={form.name} onChange={set("name")} placeholder="e.g. Aarav K." style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"white",fontSize:13,outline:"none"}} /></div>
+          <div><label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>Age (months) <span style={{color:"#ef4444"}}>*</span></label><input type="number" value={form.age_months} onChange={set("age_months")} placeholder="e.g. 18" style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"white",fontSize:13,outline:"none"}} /></div>
+          <div><label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>Gender</label><select value={form.gender} onChange={set("gender")} style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"#cbd5e1",fontSize:13,outline:"none"}}><option>Male</option><option>Female</option></select></div>
+          <div><label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>District</label><select value={form.district} onChange={set("district")} style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"#cbd5e1",fontSize:13,outline:"none"}}>{DISTRICTS.map(d=><option key={d}>{d}</option>)}</select></div>
+          <div><label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>Weight (kg) <span style={{color:"#ef4444"}}>*</span></label><input type="number" value={form.weight_kg} onChange={set("weight_kg")} placeholder="e.g. 8.5" style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"white",fontSize:13,outline:"none"}} /></div>
+          <div><label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>Height (cm) <span style={{color:"#ef4444"}}>*</span></label><input type="number" value={form.height_cm} onChange={set("height_cm")} placeholder="e.g. 74.0" style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"white",fontSize:13,outline:"none"}} /></div>
         </div>
         <div style={{ fontSize:11, color:"#64748b", fontWeight:600, textTransform:"uppercase" as const, letterSpacing:"0.05em", marginBottom:10 }}>Deficiency Flags</div>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14, marginBottom:20 }}>
-          {[
+          {([
             ["Vitamin A Deficient","vitamin_a"],
             ["Iron Deficient","iron"],
             ["Underweight","underweight"],
             ["Wasting","wasting"],
             ["Stunting","stunting"],
             ["Scheme Enrolled","scheme_enrolled"],
-          ].map(([label, k]) => (
-            <Select key={k} label={label} k={k} options={["No","Yes"]} />
+          ] as [string,string][]).map(([label, k]) => (
+            <div key={k}>
+              <label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>{label}</label>
+              <select value={(form as any)[k]} onChange={(e) => { const v = e.target.value; setForm((p) => ({...p, [k]: v})); }}
+                style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"#cbd5e1",fontSize:13,outline:"none"}}>
+                <option>No</option><option>Yes</option>
+              </select>
+            </div>
           ))}
         </div>
         <div style={{ display:"flex", justifyContent:"flex-end", gap:10 }}>
@@ -540,15 +538,42 @@ function AddChildTab() {
 }
 
 function SystemTab() {
-  const [thresholds, setThresholds] = useState({ high_risk:0.7, medium_risk:0.4, alert_email:"admin@karnataka.gov.in", sync_interval:24 });
+  const [thresholds, setThresholds] = useState({ high_risk:0.7, medium_risk:0.4, alert_email:"aakash1552005@gmail.com", sync_interval:24 });
   const [saved, setSaved] = useState(false);
-  function save() { setSaved(true); setTimeout(() => setSaved(false), 2000); }
+  const [alertSent, setAlertSent] = useState(false);
+
+  function save() { setSaved(true); setTimeout(() => setSaved(false), 2500); }
+
+  function testAlert() {
+    setAlertSent(true);
+    setTimeout(() => setAlertSent(false), 4000);
+  }
+
   return (
     <div>
-      <SectionHeader title="System Settings" sub="Configure thresholds, alerts, and integrations" />
+      <SectionHeader title="System Settings" sub="Configure risk thresholds and alert notifications" />
+
+      {/* Explanation box */}
+      <div className="glass" style={{ borderRadius:12, padding:16, marginBottom:16, border:"1px solid rgba(96,165,250,0.2)", background:"rgba(96,165,250,0.04)" }}>
+        <div style={{ fontSize:13, fontWeight:600, color:"#60a5fa", marginBottom:8 }}>How Alert System Works</div>
+        <div style={{ fontSize:12, color:"#94a3b8", lineHeight:1.7 }}>
+          • <strong style={{color:"white"}}>High Risk Threshold (0.7):</strong> If ML model predicts risk probability ≥ 70%, child is flagged High Risk<br/>
+          • <strong style={{color:"white"}}>Medium Risk Threshold (0.4):</strong> If ML model predicts risk probability ≥ 40%, child is flagged Medium Risk<br/>
+          • <strong style={{color:"white"}}>Alert Email:</strong> When a new child is added and classified as High Risk, an alert is sent to your email<br/>
+          • <strong style={{color:"white"}}>Auto-sync:</strong> Every {thresholds.sync_interval} hours, the portal checks for new Supabase records automatically<br/>
+          • <strong style={{color:"white"}}>Note:</strong> Email alerts are simulated in demo mode — in production, connect to SendGrid/SMTP
+        </div>
+      </div>
+
       {saved && (
         <div style={{ marginBottom:12, padding:"10px 16px", borderRadius:10, background:"rgba(52,211,153,0.1)", border:"1px solid rgba(52,211,153,0.2)", fontSize:13, color:"#34d399", display:"flex", gap:8, alignItems:"center" }}>
-          <Check size={14} /> Settings saved
+          <Check size={14} /> Settings saved successfully
+        </div>
+      )}
+      {alertSent && (
+        <div style={{ marginBottom:12, padding:"10px 16px", borderRadius:10, background:"rgba(96,165,250,0.1)", border:"1px solid rgba(96,165,250,0.2)", fontSize:13, color:"#60a5fa", display:"flex", gap:8, alignItems:"center" }}>
+          <Check size={14} /> Test alert email simulated → would be sent to {thresholds.alert_email}
+          <span style={{fontSize:11, color:"#475569"}}>(Subject: CNIT Alert — High Risk Child Detected in Karnataka)</span>
         </div>
       )}
       <div className="glass" style={{ borderRadius:12, padding:24, marginBottom:16 }}>
@@ -588,7 +613,11 @@ function SystemTab() {
           <Database size={15} /> Open Supabase Dashboard <ChevronRight size={14} />
         </a>
       </div>
-      <div style={{ display:"flex", justifyContent:"flex-end" }}>
+      <div style={{ display:"flex", justifyContent:"flex-end", gap:10 }}>
+        <button onClick={testAlert}
+          style={{ padding:"10px 20px", borderRadius:10, fontSize:13, fontWeight:500, cursor:"pointer", background:"rgba(96,165,250,0.1)", border:"1px solid rgba(96,165,250,0.2)", color:"#60a5fa" }}>
+          Send Test Alert Email
+        </button>
         <button onClick={save}
           style={{ padding:"10px 24px", borderRadius:10, fontSize:13, fontWeight:600, cursor:"pointer", background:"linear-gradient(135deg,#0d9488,#14b8a6)", color:"white", border:"none" }}>
           Save Settings
@@ -611,6 +640,8 @@ export default function AdminPage() {
     add_child: <AddChildTab />,
     system:    <SystemTab />,
   };
+  // Keep all tabs mounted to prevent state reset
+  
 
   return (
     <div style={{ padding:24 }}>
@@ -633,7 +664,13 @@ export default function AdminPage() {
         })}
       </div>
 
-      <div>{panels[tab]}</div>
+      <div>
+        {(Object.keys(panels) as Tab[]).map(t => (
+          <div key={t} style={{ display: tab === t ? "block" : "none" }}>
+            {panels[t]}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
