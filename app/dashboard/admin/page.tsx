@@ -16,6 +16,7 @@ const TABS = [
   { id:"system",     icon:Settings,  label:"System Settings", color:"#94a3b8" },
 ] as const;
 
+// ── Mock audit log entries ──
 const AUDIT_SEED = [
   { id:1, user:"aakash1552005@gmail.com", action:"Exported dataset (CSV)",       module:"Export",   ts:"2026-06-10 22:14:03", ip:"192.168.1.12" },
   { id:2, user:"officer1@wcd.kar.in",    action:"Added child record KA10051",   module:"Add Child",ts:"2026-06-10 21:58:44", ip:"10.0.0.5"    },
@@ -27,6 +28,7 @@ const AUDIT_SEED = [
   { id:8, user:"officer3@wcd.kar.in",    action:"First login",                  module:"Auth",     ts:"2026-06-09 17:10:02", ip:"10.0.1.3"    },
 ];
 
+// ── Mock users ──
 const USERS_SEED = [
   { id:1, email:"aakash1552005@gmail.com", name:"Aakash S S", role:"Administrator", active:true, last_login:new Date().toLocaleString("en-IN") },
 ];
@@ -44,6 +46,7 @@ function SectionHeader({ title, sub }: { title:string; sub:string }) {
   );
 }
 
+// ── TABS ──────────────────────────────────────────────
 function OverviewTab() {
   return (
     <div>
@@ -109,6 +112,7 @@ function SyncTab() {
       await new Promise((r) => setTimeout(r, 600));
       setLog((prev) => [...prev, steps[i]]);
     }
+    // Get real count from Supabase
       const supabase = createClient();
       const { count } = await supabase.from("child_records").select("*", { count:"exact", head:true });
       setResult({ new_records: count ?? 0, updated: 0, timestamp: new Date().toLocaleString("en-IN") });
@@ -131,6 +135,7 @@ function SyncTab() {
             {status==="syncing" ? "Syncing..." : "Run Sync Now"}
           </button>
         </div>
+        {/* Log terminal */}
         {log.length > 0 && (
           <div style={{ background:"rgba(0,0,0,0.4)", borderRadius:8, padding:14, fontFamily:"monospace", fontSize:12 }}>
             {log.map((l,i) => (
@@ -166,6 +171,7 @@ function ExportTab() {
 
   async function doExport() {
     setExporting(true);
+    // Build mock CSV data
     await new Promise((r) => setTimeout(r, 1200));
     const headers = ["child_id","name","age_months","gender","district","weight_kg","height_cm","bmi","risk_level","scheme_enrolled","vitamin_a_deficient","iron_deficient","underweight","wasting","stunting"];
     const firstNames = ["Aarav","Priya","Kiran","Deepa","Rahul","Ananya","Vikram","Suma","Arjun","Nandini"];
@@ -420,75 +426,85 @@ function AuditTab() {
 
 function AddChildTab() {
   const supabase = createClient();
-  const [form, setForm] = useState({
-    name:"", age_months:"", gender:"Male", district:"Kalaburagi",
-    weight_kg:"", height_cm:"", vitamin_a:"No", iron:"No",
-    underweight:"No", wasting:"No", stunting:"No", scheme_enrolled:"No",
-  });
-  const [status, setStatus] = useState<"idle"|"saving"|"done"|"error">("idle");
-  const [errMsg, setErrMsg] = useState("");
-
-  const set = (k:string) => (e: React.ChangeEvent<HTMLInputElement|HTMLSelectElement>) => {
-    setForm((p) => ({ ...p, [k]: e.target.value }));
-  };
+  const [ageMonths, setAgeMonths]   = useState("");
+  const [gender, setGender]         = useState("Male");
+  const [district, setDistrict]     = useState("Kalaburagi");
+  const [weightKg, setWeightKg]     = useState("");
+  const [heightCm, setHeightCm]     = useState("");
+  const [vitA, setVitA]             = useState("No");
+  const [iron, setIron]             = useState("No");
+  const [uw, setUw]                 = useState("No");
+  const [wasting, setWasting]       = useState("No");
+  const [stunting, setStunting]     = useState("No");
+  const [scheme, setScheme]         = useState("No");
+  const [vacc, setVacc]             = useState("None");
+  const [bf, setBf]                 = useState("No");
+  const [lastChildId, setLastChildId] = useState("");
+  const [status, setStatus]         = useState<"idle"|"saving"|"done"|"error">("idle");
+  const [errMsg, setErrMsg]         = useState("");
 
   async function save() {
-    if (!form.name || !form.age_months || !form.weight_kg || !form.height_cm) {
-      setErrMsg("Please fill in all required fields."); return;
+    if (!ageMonths || !weightKg || !heightCm) {
+      setErrMsg("Please fill Age, Weight and Height."); return;
     }
     setErrMsg(""); setStatus("saving");
-    const age = parseInt(form.age_months);
-    const wt = parseFloat(form.weight_kg);
-    const ht = parseFloat(form.height_cm);
-    const bmi = +(wt / (ht/100)**2).toFixed(1);
-    const risk = form.wasting==="Yes" || form.stunting==="Yes" ? "High Risk"
-      : form.underweight==="Yes" || form.vitamin_a==="Yes" || form.iron==="Yes" ? "Medium Risk" : "Low Risk";
+    const age = parseInt(ageMonths);
+    const wt  = parseFloat(weightKg);
+    const ht  = parseFloat(heightCm);
+    const bmi = +(wt / (ht/100)**2).toFixed(2);
+    const waz = +((wt - (5 + age*0.15)) / 1.2).toFixed(2);
+    const haz = +((ht - (60 + age*0.30)) / 2.5).toFixed(2);
+    const whz = +(bmi - 15.5).toFixed(2);
 
-    // ✅ FIX: child_records' real schema (confirmed against the source CSV
-    // that seeded this table) has 25 columns total, ALL effectively NOT
-    // NULL (zero blanks across all 5,000 existing rows). The old payload
-    // sent a "created_at" column that doesn't exist at all, was missing
-    // 10 required columns entirely, and sent poshan_abhiyaan as a string
-    // ("Yes"/"No") when the real column is an INTEGER (0/1). Any one of
-    // these causes Supabase to reject the insert — "created_at" was just
-    // the first one it happened to complain about.
+    // Auto-generate unique child_id
+    const ts = Date.now().toString().slice(-8);
+    const child_id = "KA" + ts;
+    setLastChildId(child_id);
+
+    const risk_label = wasting==="Yes"||stunting==="Yes" ? "High Risk"
+      : uw==="Yes"||vitA==="Yes"||iron==="Yes" ? "Medium Risk" : "Low Risk";
+
     const payload = {
-      child_id: "KA" + String(Date.now()).slice(-5),
-      age_months: age,
-      gender: form.gender,
-      district: form.district,
-      weight_kg: wt,
-      height_cm: ht,
+      child_id,
+      age_months:        age,
+      gender,
+      district,
+      weight_kg:         wt,
+      height_cm:         ht,
       bmi,
-      // haz/waz/whz (growth z-scores) aren't collected by this simplified
-      // form — 0 is a neutral placeholder until the form captures them.
-      haz: 0,
-      waz: 0,
-      whz: 0,
-      family_income: "Below Poverty",
-      mother_education: "Primary",
-      household_size: 5,
-      vaccination_status: "Partial",
-      breastfeeding: "Yes",
-      mid_day_meal: 0,
-      icds_enrolled: 0,
-      poshan_abhiyaan: form.scheme_enrolled === "Yes" ? 1 : 0,   // ✅ integer, not "Yes"/"No"
-      iron_deficiency: form.iron === "Yes" ? 1 : 0,
-      vitamin_a_deficiency: form.vitamin_a === "Yes" ? 1 : 0,
-      protein_deficiency: 0,
-      zinc_deficiency: 0,
-      stunting: form.stunting === "Yes" ? 1 : 0,
-      wasting: form.wasting === "Yes" ? 1 : 0,
-      underweight: form.underweight === "Yes" ? 1 : 0,
-      risk_label: risk,   // ✅ "risk_label", not "risk_level"; values "High Risk"/"Medium Risk"/"Low Risk"
+      waz,
+      haz,
+      whz,
+      risk_label,
+      vaccination_status: vacc,
+      breastfeeding:     bf,
+      poshan_abhiyaan:   scheme,
+      icds_enrolled:     "No",
+      mid_day_meal:      "No",
+      vitamin_a_deficiency: vitA==="Yes" ? 1 : 0,
+      iron_deficiency:      iron==="Yes" ? 1 : 0,
+      protein_deficiency:   0,
+      zinc_deficiency:      0,
+      underweight:          uw==="Yes" ? 1 : 0,
+      wasting:              wasting==="Yes" ? 1 : 0,
+      stunting:             stunting==="Yes" ? 1 : 0,
+      family_income:        "Low",
+      mother_education:     "Primary",
+      household_size:       4,
     };
+
     try {
       const { error } = await supabase.from("child_records").insert([payload]);
       if (error) throw error;
       setStatus("done");
-      setForm({ name:"", age_months:"", gender:"Male", district:"Kalaburagi", weight_kg:"", height_cm:"", vitamin_a:"No", iron:"No", underweight:"No", wasting:"No", stunting:"No", scheme_enrolled:"No" });
+      // Reset form
+      setAgeMonths(""); setWeightKg(""); setHeightCm("");
+      setGender("Male"); setDistrict("Kalaburagi");
+      setVitA("No"); setIron("No"); setUw("No");
+      setWasting("No"); setStunting("No"); setScheme("No");
+      setVacc("None"); setBf("No");
     } catch (e:any) {
-      setErrMsg(e.message ?? "Insert failed — check Supabase table/permissions.");
+      setErrMsg(e.message ?? "Insert failed.");
       setStatus("error");
     }
   }
@@ -509,46 +525,35 @@ function AddChildTab() {
         </div>
       )}
       <div className="glass" style={{ borderRadius:12, padding:24 }}>
-        <div style={{ fontSize:12, color:"#f59e0b", marginBottom:16, display:"flex", alignItems:"center", gap:6 }}>
-          <AlertTriangle size={13} /> Basic details — risk level auto-calculated from deficiency flags
+        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:16, padding:"10px 14px", borderRadius:8, background:"rgba(245,158,11,0.08)", border:"1px solid rgba(245,158,11,0.15)" }}>
+          <AlertTriangle size={13} color="#f59e0b" />
+          <span style={{ fontSize:12, color:"#f59e0b" }}>Child ID is auto-generated · Risk level auto-calculated from deficiency flags · All fields saved to Supabase</span>
         </div>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14, marginBottom:14 }}>
-          <div><label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>Child Name <span style={{color:"#ef4444"}}>*</span></label><input value={form.name} onChange={set("name")} placeholder="e.g. Aarav K." style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"white",fontSize:13,outline:"none"}} /></div>
-          <div><label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>Age (months) <span style={{color:"#ef4444"}}>*</span></label><input type="number" value={form.age_months} onChange={set("age_months")} placeholder="e.g. 18" style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"white",fontSize:13,outline:"none"}} /></div>
-          <div><label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>Gender</label><select value={form.gender} onChange={set("gender")} style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"#cbd5e1",fontSize:13,outline:"none"}}><option>Male</option><option>Female</option></select></div>
-          <div><label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>District</label><select value={form.district} onChange={set("district")} style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"#cbd5e1",fontSize:13,outline:"none"}}>{DISTRICTS.map(d=><option key={d}>{d}</option>)}</select></div>
-          <div><label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>Weight (kg) <span style={{color:"#ef4444"}}>*</span></label><input type="number" value={form.weight_kg} onChange={set("weight_kg")} placeholder="e.g. 8.5" style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"white",fontSize:13,outline:"none"}} /></div>
-          <div><label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>Height (cm) <span style={{color:"#ef4444"}}>*</span></label><input type="number" value={form.height_cm} onChange={set("height_cm")} placeholder="e.g. 74.0" style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"white",fontSize:13,outline:"none"}} /></div>
+          <div><label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>Age (months) <span style={{color:"#ef4444"}}>*</span></label><input type="number" value={ageMonths} onChange={e=>setAgeMonths(e.target.value)} placeholder="e.g. 18" style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"white",fontSize:13,outline:"none",boxSizing:"border-box" as const}} /></div>
+          <div><label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>Gender</label><select value={gender} onChange={e=>setGender(e.target.value)} style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"#cbd5e1",fontSize:13,outline:"none"}}><option>Male</option><option>Female</option></select></div>
+          <div><label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>District</label><select value={district} onChange={e=>setDistrict(e.target.value)} style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"#cbd5e1",fontSize:13,outline:"none"}}>{DISTRICTS.map(d=><option key={d}>{d}</option>)}</select></div>
+          <div><label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>Weight (kg) <span style={{color:"#ef4444"}}>*</span></label><input type="number" step="0.1" value={weightKg} onChange={e=>setWeightKg(e.target.value)} placeholder="e.g. 8.5" style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"white",fontSize:13,outline:"none",boxSizing:"border-box" as const}} /></div>
+          <div><label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>Height (cm) <span style={{color:"#ef4444"}}>*</span></label><input type="number" step="0.1" value={heightCm} onChange={e=>setHeightCm(e.target.value)} placeholder="e.g. 74.0" style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"white",fontSize:13,outline:"none",boxSizing:"border-box" as const}} /></div>
+          <div><label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>Vaccination Status</label><select value={vacc} onChange={e=>setVacc(e.target.value)} style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"#cbd5e1",fontSize:13,outline:"none"}}><option>None</option><option>Partial</option><option>Complete</option></select></div>
+          <div><label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>Breastfeeding</label><select value={bf} onChange={e=>setBf(e.target.value)} style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"#cbd5e1",fontSize:13,outline:"none"}}><option>No</option><option>Yes</option></select></div>
+          <div><label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>POSHAN Enrolled</label><select value={scheme} onChange={e=>setScheme(e.target.value)} style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"#cbd5e1",fontSize:13,outline:"none"}}><option>No</option><option>Yes</option></select></div>
         </div>
         <div style={{ fontSize:11, color:"#64748b", fontWeight:600, textTransform:"uppercase" as const, letterSpacing:"0.05em", marginBottom:10 }}>Deficiency Flags</div>
         <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14, marginBottom:20 }}>
-          {([
-            ["Vitamin A Deficient","vitamin_a"],
-            ["Iron Deficient","iron"],
-            ["Underweight","underweight"],
-            ["Wasting","wasting"],
-            ["Stunting","stunting"],
-            ["Scheme Enrolled","scheme_enrolled"],
-          ] as [string,string][]).map(([label, k]) => (
-            <div key={k}>
-              <label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>{label}</label>
-              <select value={(form as any)[k]} onChange={(e) => { const v = e.target.value; setForm((p) => ({...p, [k]: v})); }}
-                style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"#cbd5e1",fontSize:13,outline:"none"}}>
-                <option>No</option><option>Yes</option>
-              </select>
-            </div>
+          {([["Vitamin A",vitA,setVitA],["Iron",iron,setIron],["Underweight",uw,setUw],["Wasting",wasting,setWasting],["Stunting",stunting,setStunting]] as [string,string,(v:string)=>void][]).map(([label,val,setter])=>(
+            <div key={label}><label style={{fontSize:11,color:"#64748b",fontWeight:500,display:"block",marginBottom:5}}>{label}</label><select value={val} onChange={e=>setter(e.target.value)} style={{width:"100%",padding:"9px 12px",background:"rgba(30,41,59,0.8)",border:"1px solid rgba(148,163,184,0.12)",borderRadius:8,color:"#cbd5e1",fontSize:13,outline:"none"}}><option>No</option><option>Yes</option></select></div>
           ))}
         </div>
         <div style={{ display:"flex", justifyContent:"flex-end", gap:10 }}>
-          <button onClick={() => setForm({ name:"", age_months:"", gender:"Male", district:"Kalaburagi", weight_kg:"", height_cm:"", vitamin_a:"No", iron:"No", underweight:"No", wasting:"No", stunting:"No", scheme_enrolled:"No" })}
+          <button onClick={()=>{setAgeMonths("");setWeightKg("");setHeightCm("");setVitA("No");setIron("No");setUw("No");setWasting("No");setStunting("No");setScheme("No");setVacc("None");setBf("No");setStatus("idle");setErrMsg("");}}
             style={{ padding:"10px 20px", borderRadius:10, fontSize:13, fontWeight:500, cursor:"pointer", background:"rgba(71,85,105,0.3)", border:"1px solid rgba(148,163,184,0.12)", color:"#94a3b8" }}>
             Reset
           </button>
           <button onClick={save} disabled={status==="saving"}
-            style={{ display:"flex", alignItems:"center", gap:8, padding:"10px 24px", borderRadius:10, fontSize:13, fontWeight:600, cursor: status==="saving"?"not-allowed":"pointer",
-              background: "linear-gradient(135deg,#dc2626,#f87171)", color:"white", border:"none", opacity: status==="saving"?0.7:1 }}>
+            style={{ display:"flex", alignItems:"center", gap:8, padding:"10px 24px", borderRadius:10, fontSize:13, fontWeight:600, cursor:status==="saving"?"not-allowed":"pointer", background:"linear-gradient(135deg,#dc2626,#f87171)", color:"white", border:"none", opacity:status==="saving"?0.7:1 }}>
             <Plus size={15} />
-            {status==="saving" ? "Saving to Supabase..." : "Save Child Record"}
+            {status==="saving" ? "Saving to Supabase..." : "+ Save Child Record"}
           </button>
         </div>
       </div>
@@ -572,6 +577,7 @@ function SystemTab() {
     <div>
       <SectionHeader title="System Settings" sub="Configure risk thresholds and alert notifications" />
 
+      {/* Explanation box */}
       <div className="glass" style={{ borderRadius:12, padding:16, marginBottom:16, border:"1px solid rgba(96,165,250,0.2)", background:"rgba(96,165,250,0.04)" }}>
         <div style={{ fontSize:13, fontWeight:600, color:"#60a5fa", marginBottom:8 }}>How Alert System Works</div>
         <div style={{ fontSize:12, color:"#94a3b8", lineHeight:1.7 }}>
@@ -645,6 +651,7 @@ function SystemTab() {
   );
 }
 
+// ── MAIN PAGE ─────────────────────────────────────────
 export default function AdminPage() {
   const [tab, setTab] = useState<Tab>("overview");
 
@@ -657,6 +664,8 @@ export default function AdminPage() {
     add_child: <AddChildTab />,
     system:    <SystemTab />,
   };
+  // Keep all tabs mounted to prevent state reset
+  
 
   return (
     <div style={{ padding:24 }}>
