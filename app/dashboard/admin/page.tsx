@@ -476,18 +476,18 @@ function AddChildTab() {
       haz,
       whz,
       risk_label,
-      vaccination_status: vacc,
-      breastfeeding:     bf,
-      poshan_abhiyaan:   scheme,
-      icds_enrolled:     "No",
-      mid_day_meal:      "No",
-      vitamin_a_deficiency: vitA==="Yes" ? 1 : 0,
-      iron_deficiency:      iron==="Yes" ? 1 : 0,
-      protein_deficiency:   0,
-      zinc_deficiency:      0,
-      underweight:          uw==="Yes" ? 1 : 0,
-      wasting:              wasting==="Yes" ? 1 : 0,
-      stunting:             stunting==="Yes" ? 1 : 0,
+      vaccination_status:   vacc,              // text: "Complete"/"Partial"/"None"
+      breastfeeding:        bf,               // text: "Yes"/"No"
+      poshan_abhiyaan:      scheme==="Yes" ? 1 : 0,  // bigint
+      icds_enrolled:        0,               // bigint
+      mid_day_meal:         0,               // bigint
+      vitamin_a_deficiency: vitA==="Yes" ? 1 : 0,    // bigint
+      iron_deficiency:      iron==="Yes" ? 1 : 0,    // bigint
+      protein_deficiency:   0,              // bigint
+      zinc_deficiency:      0,              // bigint
+      underweight:          uw==="Yes" ? 1 : 0,      // bigint
+      wasting:              wasting==="Yes" ? 1 : 0, // bigint
+      stunting:             stunting==="Yes" ? 1 : 0,// bigint
       family_income:        "Low",
       mother_education:     "Primary",
       household_size:       4,
@@ -516,7 +516,7 @@ function AddChildTab() {
       <SectionHeader title="Add New Child Record" sub="Register a newborn or new child into the Supabase dataset" />
       {status==="done" && (
         <div style={{ marginBottom:16, padding:"12px 16px", borderRadius:10, background:"rgba(52,211,153,0.08)", border:"1px solid rgba(52,211,153,0.2)", display:"flex", alignItems:"center", gap:8, fontSize:13, color:"#34d399" }}>
-          <Check size={15} /> Child record saved to Supabase successfully!
+          <Check size={15} /> Child record saved! ID: {lastChildId}
         </div>
       )}
       {errMsg && (
