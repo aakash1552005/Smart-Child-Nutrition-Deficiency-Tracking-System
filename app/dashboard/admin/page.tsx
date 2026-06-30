@@ -201,6 +201,7 @@ function ExportTab() {
     a.download = `karnataka_child_nutrition_${district.replace(" ","_")}_${new Date().toISOString().slice(0,10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    
     setExporting(false);
   }
 
@@ -379,7 +380,8 @@ function UsersTab() {
 }
 
 function AuditTab() {
-  const [logs] = useState(AUDIT_SEED);
+  const [logs, setLogs] = useState<any[]>([]);
+  useEffect(() => { setLogs([...AUDIT_SEED]); }, []);
   const moduleColor = (m:string) => {
     const map: Record<string,{color:string;bg:string}> = {
       "Sync":     { color:"#60a5fa", bg:"rgba(96,165,250,0.1)" },
@@ -552,9 +554,9 @@ function AddChildTab() {
           </button>
           <button onClick={save} disabled={status==="saving"}
             style={{ display:"flex", alignItems:"center", gap:8, padding:"10px 24px", borderRadius:10, fontSize:13, fontWeight:600, cursor:status==="saving"?"not-allowed":"pointer", background:"linear-gradient(135deg,#dc2626,#f87171)", color:"white", border:"none", opacity:status==="saving"?0.7:1 }}>
-            <Plus size={15} />
-            {status==="saving" ? "Saving to Supabase..." : "+ Save Child Record"}
+            {status==="saving" ? "Saving to Supabase..." : "Save Child Record"}
           </button>
+          
         </div>
       </div>
     </div>
