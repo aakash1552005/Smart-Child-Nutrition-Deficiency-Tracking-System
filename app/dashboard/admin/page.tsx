@@ -18,19 +18,19 @@ const TABS = [
 
 // ── Mock audit log entries ──
 const AUDIT_SEED = [
-  { id:1, user:"aakash1552005@gmail.com", action:"Exported dataset (CSV)",       module:"Export",   ts:"2026-06-10 22:14:03", ip:"192.168.1.12" },
+  { id:1, user:"admin@wcd.karnataka.gov.in", action:"Exported dataset (CSV)",       module:"Export",   ts:"2026-06-10 22:14:03", ip:"192.168.1.12" },
   { id:2, user:"officer1@wcd.kar.in",    action:"Added child record KA10051",   module:"Add Child",ts:"2026-06-10 21:58:44", ip:"10.0.0.5"    },
-  { id:3, user:"aakash1552005@gmail.com", action:"Synced 5,000 records from child_records table",       module:"Sync",     ts:"2026-06-10 21:30:11", ip:"192.168.1.12" },
+  { id:3, user:"admin@wcd.karnataka.gov.in", action:"Synced 5,000 records from child_records table",       module:"Sync",     ts:"2026-06-10 21:30:11", ip:"192.168.1.12" },
   { id:4, user:"officer2@wcd.kar.in",    action:"Logged in",                    module:"Auth",     ts:"2026-06-10 20:45:22", ip:"10.0.0.9"    },
-  { id:5, user:"aakash1552005@gmail.com", action:"Updated risk threshold to 0.7",module:"Settings", ts:"2026-06-10 19:12:55", ip:"192.168.1.12" },
+  { id:5, user:"admin@wcd.karnataka.gov.in", action:"Updated risk threshold to 0.7",module:"Settings", ts:"2026-06-10 19:12:55", ip:"192.168.1.12" },
   { id:6, user:"officer1@wcd.kar.in",    action:"Viewed child record KA00123",  module:"Records",  ts:"2026-06-10 18:30:40", ip:"10.0.0.5"    },
-  { id:7, user:"aakash1552005@gmail.com", action:"Added user officer3@wcd.kar.in",module:"Users",   ts:"2026-06-09 17:05:18", ip:"192.168.1.12" },
+  { id:7, user:"admin@wcd.karnataka.gov.in", action:"Added user officer3@wcd.kar.in",module:"Users",   ts:"2026-06-09 17:05:18", ip:"192.168.1.12" },
   { id:8, user:"officer3@wcd.kar.in",    action:"First login",                  module:"Auth",     ts:"2026-06-09 17:10:02", ip:"10.0.1.3"    },
 ];
 
 // ── Mock users ──
 const USERS_SEED = [
-  { id:1, email:"aakash1552005@gmail.com", name:"Aakash S S", role:"Administrator", active:true, last_login:new Date().toLocaleString("en-IN") },
+  { id:1, email:"admin@wcd.karnataka.gov.in", name:"System Administrator", role:"Administrator", active:true, last_login:new Date().toLocaleString("en-IN") },
 ];
 
 function Badge({ color, bg, children }: { color:string; bg:string; children:React.ReactNode }) {
@@ -564,7 +564,7 @@ function AddChildTab() {
 }
 
 function SystemTab() {
-  const [thresholds, setThresholds] = useState({ high_risk:0.7, medium_risk:0.4, alert_email:"aakash1552005@gmail.com", sync_interval:24 });
+  const [thresholds, setThresholds] = useState({ high_risk:0.7, medium_risk:0.4, alert_email:"admin@wcd.karnataka.gov.in", sync_interval:24 });
   const [saved, setSaved] = useState(false);
   const [alertSent, setAlertSent] = useState(false);
 

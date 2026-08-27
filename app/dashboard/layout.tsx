@@ -34,10 +34,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [stats, setStats] = useState({ total: 5000, high: 66 });
+  const [user, setUser] = useState<{ email?: string; name?: string } | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
-    async function loadStats() {
+    async function checkAuthAndLoadData() {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) {
+        router.push("/auth");
+        return;
+      }
+      setUser({
+        email: authUser.email,
+        name: authUser.user_metadata?.full_name || authUser.email?.split("@")[0] || "Portal User",
+      });
+
       const [totalRes, highRes] = await Promise.all([
         supabase.from("child_records").select("*", { count:"exact", head:true }),
         supabase.from("child_records").select("*", { count:"exact", head:true }).ilike("risk_label", "%high%"),
@@ -47,8 +58,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         high:  highRes.count ?? 66,
       });
     }
-    loadStats();
-  }, []);
+    checkAuthAndLoadData();
+  }, [router]);
 
   async function signOut() {
     await supabase.auth.signOut();
@@ -141,10 +152,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
             <div style={{ width:1, height:28, background:"rgba(148,163,184,0.1)" }} />
             <div style={{ display:"flex", alignItems:"center", gap:10, padding:"6px 12px", borderRadius:10, background:"rgba(30,41,59,0.6)", border:"1px solid rgba(148,163,184,0.08)" }}>
-              <div style={{ width:28, height:28, borderRadius:8, background:"linear-gradient(135deg,#0d9488,#14b8a6)", display:"flex", alignItems:"center", justifyContent:"center", color:"white", fontWeight:700, fontSize:12 }}>A</div>
+              <div style={{ width:28, height:28, borderRadius:8, background:"linear-gradient(135deg,#0d9488,#14b8a6)", display:"flex", alignItems:"center", justifyContent:"center", color:"white", fontWeight:700, fontSize:12 }}>
+                {user?.name ? user.name[0].toUpperCase() : "A"}
+              </div>
               <div>
-                <div style={{ fontSize:12, fontWeight:600, color:"white" }}>Portal User</div>
-                <div style={{ fontSize:10, color:"#64748b" }}>Administrator</div>
+                <div style={{ fontSize:12, fontWeight:600, color:"white" }}>{user?.name || "Portal User"}</div>
+                <div style={{ fontSize:10, color:"#64748b" }}>{user?.email || "Administrator"}</div>
               </div>
             </div>
           </div>
